@@ -5,59 +5,77 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 8c68e705-e073-4322-b342-564e63d6cdf9
-using AlgebraOfGraphics, CairoMakie, DataFrames, CSV, DataFrameMacros, Chain, Dates
-
-# ╔═╡ a92bf4e9-bfac-4b3e-9ca6-101b8c439018
-set_aog_theme!()
+using CairoMakie, DataFrames, CSV, Chain, Dates, RollingFunctions, Loess, Colors
 
 # ╔═╡ c45fb028-9c10-4ff6-8c95-594a5afdcfea
 longdf = DataFrame(CSV.File("fact_epirapo_covid19case.csv"))
 
-# ╔═╡ aa2d6929-dfc6-4c68-a3a0-5085f4fa58db
-df = @chain longdf begin
-	unstack(:Mittari, :val)
-	@select(:Date = :Aika, :Cases = $"Tapausten lukumäärä", :Tests = $"Testausmäärä", :Deaths = $"Kuolemantapausten lukumäärä")
-	@subset(:Date >= Date(2021, 10, 1))
+# ╔═╡ b2933428-3896-4076-8860-736c66939bd9
+begin
+	running_mean_length = 7
+	df = @chain longdf begin
+		unstack(:Mittari, :val)
+		select(:Aika => :Date, "Tapausten lukumäärä" => :Cases, "Testausmäärä" => :Tests, "Kuolemantapausten lukumäärä" => :Deaths)
+		subset(:Date => d -> d .>= Date(2021, 11, 1))
+		subset(:Date => d -> d .<= Date(2022, 1, 19))
+		disallowmissing()
+	end
+	df.CasesRunMean= runmean(df.Cases, running_mean_length)
+	df.TestsRunMean= runmean(df.Tests, running_mean_length)
+	df
 end
 
-# ╔═╡ 4412c503-3a67-44a2-bf8f-e94454e59a54
+# ╔═╡ 2c33414b-f2c5-49ae-8076-65610bcb308f
 begin
-	cases = data(df) * mapping(:Date, :Cases)
-	tests = data(df) * mapping(:Date, :Tests)
-	draw(cases + tests)
+	xtick_pos = []
+	xtick_label = []
+	for (index, value) in enumerate(df.Date)
+		if Dates.dayofweek(value) == 1
+			push!(xtick_pos, index)
+			push!(xtick_label, string(value))
+		end
+	end
+	xticks = (xtick_pos, xtick_label)
 end
+
+# ╔═╡ a8fb0c73-f98a-4db0-bcab-56d071b08628
+
 
 # ╔═╡ e0faad32-95f3-4a4b-854e-ffd86206c39a
 begin
-	    fig = Figure(resolution = (700, 450), font =:sans)
+	    fig = Figure(resolution = (1000, 500), font =:sans)
 	    ax = Axis(fig, xlabel = "Date", ylabel = "Cases")
-	    line1 = lines!(ax, 1:nrow(df), df.Cases, color = :red, linewidth = 0.85)
-		line2 = lines!(ax, 1:nrow(df), df.Tests, color = :black, linewidth = 0.85)
-	    #ax.xticks = (slice_dates, tempo[slice_dates])
-	    #ax.xticklabelrotation = π/4
-	    #ax.xticklabelalign = (:center, :center)
+	    line1 = lines!(ax, 1:nrow(df), df.CasesRunMean, color = :red, linewidth = 0.85)
+		#line2 = lines!(ax, 1:nrow(df), df.TestsRunMean, color = :black, linewidth = 0.85)
+		ax.xticks = xticks
+		ax.xticklabelrotation = π/4
 	    fig[1,1] = ax
 	    fig
 end
 
+# ╔═╡ ce0773b8-2c38-4403-9935-f80125d71e40
+
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Chain = "8be319e6-bccf-4806-a6f7-6fae938471bc"
-DataFrameMacros = "75880514-38bc-4a95-a458-c2aea5a3a702"
+Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Loess = "4345ca2d-374a-55d4-8d30-97f9976e7612"
+RollingFunctions = "b0e4dd01-7b14-53d8-9b45-175a3e362653"
 
 [compat]
-AlgebraOfGraphics = "~0.6.0"
 CSV = "~0.10.2"
 CairoMakie = "~0.6.6"
 Chain = "~0.4.10"
-DataFrameMacros = "~0.2.1"
+Colors = "~0.12.8"
 DataFrames = "~1.3.1"
+Loess = "~0.5.4"
+RollingFunctions = "~0.6.2"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -83,12 +101,6 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "af92965fb30777147966f58acb05da51c5616b5f"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 version = "3.3.3"
-
-[[deps.AlgebraOfGraphics]]
-deps = ["Colors", "Dates", "FileIO", "GLM", "GeoInterface", "GeometryBasics", "GridLayoutBase", "KernelDensity", "Loess", "Makie", "PlotUtils", "PooledArrays", "RelocatableFolders", "StatsBase", "StructArrays", "Tables"]
-git-tree-sha1 = "a79d1facb9fb0cd858e693088aa366e328109901"
-uuid = "cbdf2221-f076-402e-a563-3d30da359d67"
-version = "0.6.0"
 
 [[deps.Animations]]
 deps = ["Colors"]
@@ -236,12 +248,6 @@ version = "4.1.1"
 git-tree-sha1 = "cc70b17275652eb47bc9e5f81635981f13cea5c8"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.9.0"
-
-[[deps.DataFrameMacros]]
-deps = ["DataFrames"]
-git-tree-sha1 = "cff70817ef73acb9882b6c9b163914e19fad84a9"
-uuid = "75880514-38bc-4a95-a458-c2aea5a3a702"
-version = "0.2.1"
 
 [[deps.DataFrames]]
 deps = ["Compat", "DataAPI", "Future", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrettyTables", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
@@ -405,18 +411,6 @@ version = "1.0.10+0"
 [[deps.Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
-
-[[deps.GLM]]
-deps = ["Distributions", "LinearAlgebra", "Printf", "Reexport", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "StatsModels"]
-git-tree-sha1 = "acb98ca3e21f630d620db02936de567a8a4fc064"
-uuid = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
-version = "1.6.0"
-
-[[deps.GeoInterface]]
-deps = ["RecipesBase"]
-git-tree-sha1 = "6b1a29c757f56e0ae01a35918a2c39260e2c4b98"
-uuid = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
-version = "0.5.7"
 
 [[deps.GeometryBasics]]
 deps = ["EarCut_jll", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
@@ -922,11 +916,6 @@ git-tree-sha1 = "01d341f502250e81f6fec0afe662aa861392a3aa"
 uuid = "c84ed2f1-dad5-54f0-aa8e-dbefe2724439"
 version = "0.4.2"
 
-[[deps.RecipesBase]]
-git-tree-sha1 = "6bf3f380ff52ce0832ddd3a2a7b9538ed1bcca7d"
-uuid = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
-version = "1.2.1"
-
 [[deps.Reexport]]
 git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
@@ -955,6 +944,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "68db32dff12bb6127bac73c209881191bf0efbb7"
 uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
 version = "0.3.0+0"
+
+[[deps.RollingFunctions]]
+deps = ["LinearAlgebra", "Statistics", "StatsBase", "Test"]
+git-tree-sha1 = "cdf9158377f81470b1b73c630d0853a3ec0c7445"
+uuid = "b0e4dd01-7b14-53d8-9b45-175a3e362653"
+version = "0.6.2"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -988,11 +983,6 @@ uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 [[deps.SharedArrays]]
 deps = ["Distributed", "Mmap", "Random", "Serialization"]
 uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
-
-[[deps.ShiftedArrays]]
-git-tree-sha1 = "22395afdcf37d6709a5a0766cc4a5ca52cb85ea0"
-uuid = "1277b4bf-5013-50f5-be3d-901d8477a67a"
-version = "1.0.0"
 
 [[deps.Showoff]]
 deps = ["Dates", "Grisu"]
@@ -1063,12 +1053,6 @@ deps = ["ChainRulesCore", "InverseFunctions", "IrrationalConstants", "LogExpFunc
 git-tree-sha1 = "bedb3e17cc1d94ce0e6e66d3afa47157978ba404"
 uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 version = "0.9.14"
-
-[[deps.StatsModels]]
-deps = ["DataAPI", "DataStructures", "LinearAlgebra", "Printf", "REPL", "ShiftedArrays", "SparseArrays", "StatsBase", "StatsFuns", "Tables"]
-git-tree-sha1 = "677488c295051568b0b79a77a8c44aa86e78b359"
-uuid = "3eaba693-59b7-5ba5-a881-562e759f1c8d"
-version = "0.6.28"
 
 [[deps.StructArrays]]
 deps = ["Adapt", "DataAPI", "StaticArrays", "Tables"]
@@ -1241,9 +1225,9 @@ version = "1.6.38+0"
 
 [[deps.libvorbis_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Ogg_jll", "Pkg"]
-git-tree-sha1 = "c45f4e40e7aafe9d086379e5578947ec8b95a8fb"
+git-tree-sha1 = "b910cb81ef3fe6e78bf6acee440bda86fd6ae00c"
 uuid = "f27f6e37-5d2b-51aa-960f-b287f2bc3b7a"
-version = "1.3.7+0"
+version = "1.3.7+1"
 
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1268,10 +1252,11 @@ version = "3.5.0+0"
 
 # ╔═╡ Cell order:
 # ╠═8c68e705-e073-4322-b342-564e63d6cdf9
-# ╠═a92bf4e9-bfac-4b3e-9ca6-101b8c439018
 # ╠═c45fb028-9c10-4ff6-8c95-594a5afdcfea
-# ╠═aa2d6929-dfc6-4c68-a3a0-5085f4fa58db
-# ╠═4412c503-3a67-44a2-bf8f-e94454e59a54
+# ╠═b2933428-3896-4076-8860-736c66939bd9
+# ╠═2c33414b-f2c5-49ae-8076-65610bcb308f
+# ╠═a8fb0c73-f98a-4db0-bcab-56d071b08628
 # ╠═e0faad32-95f3-4a4b-854e-ffd86206c39a
+# ╠═ce0773b8-2c38-4403-9935-f80125d71e40
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
