@@ -7,22 +7,18 @@ using InteractiveUtils
 # ╔═╡ 8c68e705-e073-4322-b342-564e63d6cdf9
 using CairoMakie, DataFrames, CSV, Chain, Dates, RollingFunctions, Loess, Colors
 
-# ╔═╡ c45fb028-9c10-4ff6-8c95-594a5afdcfea
-longdf = DataFrame(CSV.File("fact_epirapo_covid19case.csv"))
+# ╔═╡ f0e5c35a-0285-4d92-b38d-460b20b52ae9
+longdf = DataFrame(CSV.File(download("https://sampo.thl.fi/pivot/prod/fi/epirapo/covid19case/fact_epirapo_covid19case.csv?row=dateweek20200101-509093L&column=measure-444833.445356.492118.&fo=1")))
 
 # ╔═╡ b2933428-3896-4076-8860-736c66939bd9
-begin
-	running_mean_length = 7
-	df = @chain longdf begin
-		unstack(:Mittari, :val)
-		select(:Aika => :Date, "Tapausten lukumäärä" => :Cases, "Testausmäärä" => :Tests, "Kuolemantapausten lukumäärä" => :Deaths)
-		subset(:Date => d -> d .>= Date(2021, 11, 1))
-		subset(:Date => d -> d .<= Date(2022, 1, 19))
-		disallowmissing()
-	end
-	df.CasesRunMean= runmean(df.Cases, running_mean_length)
-	df.TestsRunMean= runmean(df.Tests, running_mean_length)
-	df
+df = @chain longdf begin
+	unstack(:Mittari, :val)
+	select(:Aika => :Date, "Tapausten lukumäärä" => :Cases, "Testausmäärä" => :Tests, "Kuolemantapausten lukumäärä" => :Deaths)
+	@aside _.CasesRunMean = runmean(_.Cases, 7)
+	@aside _.TestsRunMean = runmean(_.Tests, 7)
+	subset(:Date => ByRow(>=(Date(2021, 8, 1))))
+	subset(:Date => ByRow(<=(today() - Dates.Day(2))))
+	disallowmissing()
 end
 
 # ╔═╡ 2c33414b-f2c5-49ae-8076-65610bcb308f
@@ -38,9 +34,6 @@ begin
 	xticks = (xtick_pos, xtick_label)
 end
 
-# ╔═╡ a8fb0c73-f98a-4db0-bcab-56d071b08628
-
-
 # ╔═╡ e0faad32-95f3-4a4b-854e-ffd86206c39a
 begin
 	    fig = Figure(resolution = (1000, 500), font =:sans)
@@ -53,7 +46,7 @@ begin
 	    fig
 end
 
-# ╔═╡ ce0773b8-2c38-4403-9935-f80125d71e40
+# ╔═╡ 6a204a02-f124-4cad-8a36-2023c890e859
 
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -69,11 +62,11 @@ Loess = "4345ca2d-374a-55d4-8d30-97f9976e7612"
 RollingFunctions = "b0e4dd01-7b14-53d8-9b45-175a3e362653"
 
 [compat]
-CSV = "~0.10.2"
-CairoMakie = "~0.6.6"
+CSV = "~0.9.11"
+CairoMakie = "~0.7.1"
 Chain = "~0.4.10"
 Colors = "~0.12.8"
-DataFrames = "~1.3.1"
+DataFrames = "~1.3.2"
 Loess = "~0.5.4"
 RollingFunctions = "~0.6.2"
 """
@@ -148,9 +141,9 @@ version = "0.4.1"
 
 [[deps.CSV]]
 deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings"]
-git-tree-sha1 = "9519274b50500b8029973d241d32cfbf0b127d97"
+git-tree-sha1 = "49f14b6c56a2da47608fe30aed711b5882264d7a"
 uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-version = "0.10.2"
+version = "0.9.11"
 
 [[deps.Cairo]]
 deps = ["Cairo_jll", "Colors", "Glib_jll", "Graphics", "Libdl", "Pango_jll"]
@@ -160,9 +153,9 @@ version = "1.0.5"
 
 [[deps.CairoMakie]]
 deps = ["Base64", "Cairo", "Colors", "FFTW", "FileIO", "FreeType", "GeometryBasics", "LinearAlgebra", "Makie", "SHA", "StaticArrays"]
-git-tree-sha1 = "774ff1cce3ae930af3948c120c15eeb96c886c33"
+git-tree-sha1 = "c5c1397a0df375fda6fc20a54c5610c96ad71cf5"
 uuid = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-version = "0.6.6"
+version = "0.7.1"
 
 [[deps.Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
@@ -251,9 +244,9 @@ version = "1.9.0"
 
 [[deps.DataFrames]]
 deps = ["Compat", "DataAPI", "Future", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrettyTables", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
-git-tree-sha1 = "cfdfef912b7f93e4b848e80b9befdf9e331bc05a"
+git-tree-sha1 = "ae02104e835f219b8930c7664b8012c93475c340"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "1.3.1"
+version = "1.3.2"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -471,10 +464,10 @@ uuid = "a09fc81d-aa75-5fe9-8630-4744c3626534"
 version = "0.9.3"
 
 [[deps.ImageIO]]
-deps = ["FileIO", "Netpbm", "OpenEXR", "PNGFiles", "TiffImages", "UUIDs"]
-git-tree-sha1 = "a2951c93684551467265e0e32b577914f69532be"
+deps = ["FileIO", "Netpbm", "OpenEXR", "PNGFiles", "QOI", "Sixel", "TiffImages", "UUIDs"]
+git-tree-sha1 = "816fc866edd8307a6e79a575e6585bfab8cef27f"
 uuid = "82e4d734-157c-48bb-816b-45c225c6df19"
-version = "0.5.9"
+version = "0.6.0"
 
 [[deps.Imath_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -672,16 +665,16 @@ uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
 version = "2021.1.1+2"
 
 [[deps.Makie]]
-deps = ["Animations", "Base64", "ColorBrewer", "ColorSchemes", "ColorTypes", "Colors", "Contour", "Distributions", "DocStringExtensions", "FFMPEG", "FileIO", "FixedPointNumbers", "Formatting", "FreeType", "FreeTypeAbstraction", "GeometryBasics", "GridLayoutBase", "ImageIO", "IntervalSets", "Isoband", "KernelDensity", "LaTeXStrings", "LinearAlgebra", "MakieCore", "Markdown", "Match", "MathTeXEngine", "Observables", "Packing", "PlotUtils", "PolygonOps", "Printf", "Random", "RelocatableFolders", "Serialization", "Showoff", "SignedDistanceFields", "SparseArrays", "StaticArrays", "Statistics", "StatsBase", "StatsFuns", "StructArrays", "UnicodeFun"]
-git-tree-sha1 = "56b0b7772676c499430dc8eb15cfab120c05a150"
+deps = ["Animations", "Base64", "ColorBrewer", "ColorSchemes", "ColorTypes", "Colors", "Contour", "Distributions", "DocStringExtensions", "FFMPEG", "FileIO", "FixedPointNumbers", "Formatting", "FreeType", "FreeTypeAbstraction", "GeometryBasics", "GridLayoutBase", "ImageIO", "IntervalSets", "Isoband", "KernelDensity", "LaTeXStrings", "LinearAlgebra", "MakieCore", "Markdown", "Match", "MathTeXEngine", "Observables", "OffsetArrays", "Packing", "PlotUtils", "PolygonOps", "Printf", "Random", "RelocatableFolders", "Serialization", "Showoff", "SignedDistanceFields", "SparseArrays", "StaticArrays", "Statistics", "StatsBase", "StatsFuns", "StructArrays", "UnicodeFun"]
+git-tree-sha1 = "8222fe4310820801c6590256b0df7f83bfa78c1a"
 uuid = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
-version = "0.15.3"
+version = "0.16.2"
 
 [[deps.MakieCore]]
 deps = ["Observables"]
-git-tree-sha1 = "7bcc8323fb37523a6a51ade2234eee27a11114c8"
+git-tree-sha1 = "c5fb1bfac781db766f9e4aef96adc19a729bc9b2"
 uuid = "20f20a25-4f0e-4fdf-b5d1-57303727442b"
-version = "0.1.3"
+version = "0.2.1"
 
 [[deps.MappedArrays]]
 git-tree-sha1 = "e8b359ef06ec72e8c030463fe02efe5527ee5142"
@@ -896,6 +889,12 @@ git-tree-sha1 = "afadeba63d90ff223a6a48d2009434ecee2ec9e8"
 uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
 version = "1.7.1"
 
+[[deps.QOI]]
+deps = ["ColorTypes", "FileIO", "FixedPointNumbers"]
+git-tree-sha1 = "18e8f4d1426e965c7b532ddd260599e1510d26ce"
+uuid = "4b34888f-f399-49d4-9bb3-47ed5cae4e65"
+version = "1.0.0"
+
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
 git-tree-sha1 = "78aadffb3efd2155af139781b8a8df1ef279ea39"
@@ -995,6 +994,12 @@ deps = ["Random", "Statistics", "Test"]
 git-tree-sha1 = "d263a08ec505853a5ff1c1ebde2070419e3f28e9"
 uuid = "73760f76-fbc4-59ce-8f25-708e95d2df96"
 version = "0.4.0"
+
+[[deps.Sixel]]
+deps = ["Dates", "FileIO", "ImageCore", "IndirectArrays", "OffsetArrays", "REPL", "libsixel_jll"]
+git-tree-sha1 = "8fb59825be681d451c246a795117f317ecbcaa28"
+uuid = "45858cf5-a6b0-47a3-bbea-62219f50df47"
+version = "0.1.2"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
@@ -1223,6 +1228,12 @@ git-tree-sha1 = "94d180a6d2b5e55e447e2d27a29ed04fe79eb30c"
 uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
 version = "1.6.38+0"
 
+[[deps.libsixel_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "78736dab31ae7a53540a6b752efc61f77b304c5b"
+uuid = "075b6546-f08a-558a-be8f-8157d0f608a5"
+version = "1.8.6+1"
+
 [[deps.libvorbis_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Ogg_jll", "Pkg"]
 git-tree-sha1 = "b910cb81ef3fe6e78bf6acee440bda86fd6ae00c"
@@ -1252,11 +1263,10 @@ version = "3.5.0+0"
 
 # ╔═╡ Cell order:
 # ╠═8c68e705-e073-4322-b342-564e63d6cdf9
-# ╠═c45fb028-9c10-4ff6-8c95-594a5afdcfea
+# ╠═f0e5c35a-0285-4d92-b38d-460b20b52ae9
 # ╠═b2933428-3896-4076-8860-736c66939bd9
 # ╠═2c33414b-f2c5-49ae-8076-65610bcb308f
-# ╠═a8fb0c73-f98a-4db0-bcab-56d071b08628
 # ╠═e0faad32-95f3-4a4b-854e-ffd86206c39a
-# ╠═ce0773b8-2c38-4403-9935-f80125d71e40
+# ╠═6a204a02-f124-4cad-8a36-2023c890e859
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
