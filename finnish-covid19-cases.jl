@@ -16,7 +16,7 @@ df = @chain longdf begin
 	select(:Aika => :Date, "Tapausten lukumäärä" => :Cases, "Testausmäärä" => :Tests, "Kuolemantapausten lukumäärä" => :Deaths)
 	@aside _.CasesRunMean = runmean(_.Cases, 7)
 	@aside _.TestsRunMean = runmean(_.Tests, 7)
-	subset(:Date => ByRow(>=(Date(2021, 8, 1))))
+	subset(:Date => ByRow(>=(Date(2021, 10, 1))))
 	subset(:Date => ByRow(<=(today() - Dates.Day(2))))
 	disallowmissing()
 end
@@ -37,12 +37,13 @@ end
 # ╔═╡ e0faad32-95f3-4a4b-854e-ffd86206c39a
 begin
 	    fig = Figure(resolution = (1000, 500), font =:sans)
-	    ax = Axis(fig, xlabel = "Date", ylabel = "Cases")
-	    line1 = lines!(ax, 1:nrow(df), df.CasesRunMean, color = :red, linewidth = 0.85)
+	    ax = Axis(fig) # , xlabel = "Date" , ylabel = "Cases"
+	    line1 = lines!(ax, 1:nrow(df), df.CasesRunMean, color = :red, linewidth = 0.85, label="Finland")
 		#line2 = lines!(ax, 1:nrow(df), df.TestsRunMean, color = :black, linewidth = 0.85)
 		ax.xticks = xticks
 		ax.xticklabelrotation = π/4
 	    fig[1,1] = ax
+		axislegend("New Covid-19 Cases (per day) 7 day moving average,\n the data is provided by National Institute for Health and Welfare, \nand is licensed under CC BY 4.0. \nData retrieved $(today())\nLast day in plot $(today() - Dates.Day(2))", position = :lt)
 	    fig
 end
 
